@@ -1,7 +1,7 @@
 package com.sprint.mission.discodeit.config;
 
+import com.sprint.mission.discodeit.security.JwtLoginSuccessHandler;
 import com.sprint.mission.discodeit.security.LoginFailureHandler;
-import com.sprint.mission.discodeit.security.LoginSuccessHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,11 +13,11 @@ import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.logout
-        .HttpStatusReturningLogoutSuccessHandler;
+import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
@@ -27,9 +27,8 @@ import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final SpaCsrfTokenRequestHandler
-            spaCsrfTokenRequestHandler;
-    private final LoginSuccessHandler loginSuccessHandler;
+    private final SpaCsrfTokenRequestHandler spaCsrfTokenRequestHandler;
+    private final JwtLoginSuccessHandler jwtLoginSuccessHandler;
     private final LoginFailureHandler loginFailureHandler;
 
     @Bean
@@ -39,11 +38,15 @@ public class SecurityConfig {
         return http
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(
-                                CookieCsrfTokenRepository
-                                        .withHttpOnlyFalse()
+                                CookieCsrfTokenRepository.withHttpOnlyFalse()
                         )
                         .csrfTokenRequestHandler(
                                 spaCsrfTokenRequestHandler
+                        )
+                )
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(
+                                SessionCreationPolicy.STATELESS
                         )
                 )
                 .authorizeHttpRequests(authorize -> authorize
@@ -61,9 +64,7 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers(
                                 new NegatedRequestMatcher(
-                                        new AntPathRequestMatcher(
-                                                "/api/**"
-                                        )
+                                        new AntPathRequestMatcher("/api/**")
                                 )
                         )
                         .permitAll()
@@ -85,23 +86,15 @@ public class SecurityConfig {
                         )
                 )
                 .formLogin(formLogin -> formLogin
-                        .loginProcessingUrl(
-                                "/api/auth/login"
-                        )
+                        .loginProcessingUrl("/api/auth/login")
                         .usernameParameter("username")
                         .passwordParameter("password")
-                        .successHandler(
-                                loginSuccessHandler
-                        )
-                        .failureHandler(
-                                loginFailureHandler
-                        )
+                        .successHandler(jwtLoginSuccessHandler)
+                        .failureHandler(loginFailureHandler)
                         .permitAll()
                 )
                 .logout(logout -> logout
-                        .logoutUrl(
-                                "/api/auth/logout"
-                        )
+                        .logoutUrl("/api/auth/logout")
                         .invalidateHttpSession(true)
                         .clearAuthentication(true)
                         .deleteCookies("JSESSIONID")
