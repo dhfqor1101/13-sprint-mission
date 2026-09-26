@@ -72,12 +72,20 @@ class AuthControllerTest {
                                 .param("password", "password123")
                 )
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(userId.toString()))
-                .andExpect(jsonPath("$.username").value("codeit"))
+                .andExpect(cookie().exists("REFRESH_TOKEN"))
                 .andExpect(
-                        jsonPath("$.email")
+                        jsonPath("$.user.id")
+                                .value(userId.toString())
+                )
+                .andExpect(
+                        jsonPath("$.user.username")
+                                .value("codeit")
+                )
+                .andExpect(
+                        jsonPath("$.user.email")
                                 .value("codeit@example.com")
-                );
+                )
+                .andExpect(jsonPath("$.accessToken").isNotEmpty());
     }
 
     @Test
